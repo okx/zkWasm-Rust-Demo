@@ -13,7 +13,7 @@ pub struct PositionAsset {
 impl Encodable for PositionAsset {
     fn rlp_append(&self, stream: &mut RlpStream) {
         stream.begin_list(3);
-        stream.append(&self.balance.to_signed_bytes_le());
+        stream.append(&self.balance.to_signed_bytes_be());
         stream.append(&self.asset_id);
         stream.append(&self.cached_funding_index);
     }
@@ -64,6 +64,18 @@ mod tests {
 
         let asset2: PositionAsset = rlp::decode(&data).unwrap();
         println!("{:?}", asset2);
+    }
+
+    #[test]
+    fn rlp2() {
+        let asset = PositionAsset {
+            balance: BigInt::from(-258),
+            asset_id: 2,
+            cached_funding_index: 259,
+        };
+        println!("{:?}", asset);
+        let data = rlp::encode(&asset).to_vec();
+        println!("{:?}", data);
     }
 
 }
