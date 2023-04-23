@@ -9,5 +9,6 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-rlp = { version = "0.5.2", default-features = false }
+num-bigint = "0.4.3"
+rlp = { version = "0.5.2"}
 wasm-bindgen = "0.2.83"
