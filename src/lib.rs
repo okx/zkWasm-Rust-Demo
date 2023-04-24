@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 use num_bigint::BigInt;
-use rlp::{Encodable, Decodable, RlpStream, DecoderError};
+use bincode::{config, Decode, Encode, enc::Encoder, de::Decoder, error::{EncodeError, DecodeError}};
 
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct PositionAsset {
@@ -10,21 +10,21 @@ pub struct PositionAsset {
     pub cached_funding_index: u128,
 }
 
-impl Encodable for PositionAsset {
-    fn rlp_append(&self, stream: &mut RlpStream) {
-        stream.begin_list(3);
-        stream.append(&self.balance.to_signed_bytes_be());
-        stream.append(&self.asset_id);
-        stream.append(&self.cached_funding_index);
+impl Encode for PositionAsset {
+    fn encode<E: Encoder>(&self, encoder: &mut E) -> Result<(), EncodeError> {
+        self.balance.to_signed_bytes_be().encode(encoder)?;
+        self.asset_id.encode(encoder)?;
+        self.cached_funding_index.encode(encoder)
     }
 }
 
-impl Decodable for PositionAsset {
-    fn decode(rlp: &rlp::Rlp) -> Result<Self, DecoderError> {
-        Ok(PositionAsset {
-            balance: BigInt::from_signed_bytes_le(rlp.at(0)?.as_raw()),
-            asset_id: rlp.val_at(1)?,
-            cached_funding_index: rlp.val_at(2)?,
+impl Decode for PositionAsset {
+    fn decode<D: Decoder>(decoder: &mut D) -> Result<Self, DecodeError> {
+        let balance: Vec<u8> = bincode::Decode::decode(decoder)?;
+        Ok(Self{
+            balance: BigInt::from_signed_bytes_be(&balance),
+            asset_id: bincode::Decode::decode(decoder)?,
+            cached_funding_index: bincode::Decode::decode(decoder)?,
         })
     }
 }
@@ -32,18 +32,14 @@ impl Decodable for PositionAsset {
 
 #[wasm_bindgen]
 pub fn zkmain() -> i64 {
-    // let data = vec![0x83, b'c', b'a', b't'];
-    // let _animal: String = rlp::decode(&data).unwrap();
-    // // assert_eq!(animal, "cat".to_owned());
-    //
-    // 0
+    let config = config::standard().with_fixed_int_encoding().with_big_endian();
     let asset = PositionAsset {
         balance: BigInt::from(1),
         asset_id: 2,
         cached_funding_index: 3,
     };
-    let data = rlp::encode(&asset).to_vec();
-    let asset2: PositionAsset = rlp::decode(&data).unwrap();
+    let data = bincode::encode_to_vec(&asset, config).unwrap();
+    let asset2: PositionAsset = bincode::decode_from_slice(&data, config).unwrap().0;
     asset2.asset_id as i64
 }
 
@@ -52,30 +48,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rlp() {
+    fn test_bincode() {
+        let config = config::standard().with_fixed_int_encoding().with_little_endian();
+        let a: u128 = 1<<31;
         let asset = PositionAsset {
-            balance: BigInt::from(1),
-            asset_id: 2,
-            cached_funding_index: 3,
-        };
-        println!("{:?}", asset);
-        let data = rlp::encode(&asset).to_vec();
-        println!("{:?}", data);
-
-        let asset2: PositionAsset = rlp::decode(&data).unwrap();
-        println!("{:?}", asset2);
-    }
-
-    #[test]
-    fn rlp2() {
-        let asset = PositionAsset {
-            balance: BigInt::from(-258),
+            balance: BigInt::from(a),
             asset_id: 2,
             cached_funding_index: 259,
         };
         println!("{:?}", asset);
-        let data = rlp::encode(&asset).to_vec();
-        println!("{:?}", data);
+
+        let data = bincode::encode_to_vec(&asset, config).unwrap();
+        println!("{:?}, {}", data, data.len());
+
+        //let (asset2, s):(PositionAsset, _) = bincode::decode_from_slice(&data, config).unwrap();
+
+
+        let asset2: PositionAsset = bincode::decode_from_slice(&data, config).unwrap().0;
+        println!("{:?}", asset2);
     }
 
 }

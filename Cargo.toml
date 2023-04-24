@@ -9,6 +9,15 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
+bincode = {git = "https://github.com/bincode-org/bincode.git", rev = "aada4bb"}
 num-bigint = "0.4.3"
-rlp = { version = "0.5.2"}
 wasm-bindgen = "0.2.83"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = true
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+opt-level = 3
